@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المشاريع - كوريان كاسيل</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#FADC9B',
+                            sand: '#A68F51',
+                            dark: '#8B7355'
+                        }
+                    },
+                    fontFamily: {
+                        arabic: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        
+        .project-card {
+            transition: all 0.3s ease;
+        }
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .status-active { @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400; }
+        .status-completed { @apply bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400; }
+        .status-on_hold { @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400; }
+        .status-cancelled { @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400; }
+        
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .team-avatar {
+            transition: transform 0.2s ease;
+        }
+        .team-avatar:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="font-arabic bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+
+    <div class="min-h-screen p-6">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">إدارة المشاريع</h1>
+                    <p class="text-gray-600 dark:text-gray-400">متابعة وإدارة جميع المشاريع والفرق</p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <button 
+                        id="create-project-btn"
+                        class="px-6 py-3 bg-gradient-to-r from-primary-sand to-primary-light text-white rounded-2xl hover:from-primary-light hover:to-primary-sand transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                    >
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            <span>مشروع جديد</span>
+                        </div>
+                    </button>
+                    
+                    <button 
+                        id="view-toggle-btn"
+                        class="px-6 py-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+                        title="تبديل العرض"
+                    >
+                        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                    </button>
+                    
+                    <button 
+                        id="export-btn"
+                        class="px-6 py-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+                        title="تصدير"
+                    >
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- إحصائيات المشاريع -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6" id="projects-stats">
+                <!-- سيتم ملء الإحصائيات بواسطة JavaScript -->
+            </div>
+        </div>
+
+        <!-- أدوات البحث والفلترة -->
+        <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div class="flex flex-col lg:flex-row gap-4">
+                
+                <div class="flex-1">
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="search-input"
+                            placeholder="البحث في المشاريع..."
+                            class="w-full pl-12 pr-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-primary-sand focus:outline-none transition-colors"
+                        />
+                        <i data-lucide="search" class="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <select id="status-filter" class="px-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors">
+                    <option value="all">جميع الحالات</option>
+                    <option value="active">نشطة</option>
+                    <option value="completed">مكتملة</option>
+                    <option value="on_hold">معلقة</option>
+                    <option value="cancelled">ملغية</option>
+                </select>
+                
+                <select id="manager-filter" class="px-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors">
+                    <option value="all">جميع المديرين</option>
+                </select>
+                
+                <button id="reset-filters-btn" class="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- عرض البطاقات -->
+        <div id="cards-view">
+            <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- سيتم ملء المشاريع بواسطة JavaScript -->
+            </div>
+        </div>
+
+        <!-- عرض الجدول -->
+        <div id="table-view" class="hidden">
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">قائمة المشاريع</h3>
+                        <span id="projects-count" class="text-sm text-gray-500 dark:text-gray-400">جاري التحميل...</span>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">المشروع</th>
+                                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">المدير</th>
+                                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">الحالة</th>
+                                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">التقدم</th>
+                                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">المهام</th>
+                                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">تاريخ الإنشاء</th>
+                                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projects-table-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- حالة فارغة -->
+        <div id="empty-state" class="hidden p-12 text-center">
+            <div class="w-20 h-20 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                <i data-lucide="folder-plus" class="w-10 h-10 text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">لا توجد مشاريع</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">ابدأ بإنشاء مشروع جديد</p>
+            <button onclick="projectsPage.openCreateModal()" class="px-6 py-3 bg-primary-sand text-white rounded-2xl hover:bg-primary-dark transition-colors">
+                إنشاء مشروع جديد
+            </button>
+        </div>
+
+        <!-- حالة التحميل -->
+        <div id="loading-state" class="p-12 text-center">
+            <div class="w-8 h-8 border-4 border-primary-sand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-gray-500 dark:text-gray-400">جاري تحميل المشاريع...</p>
+        </div>
+    </div>
+
+    <!-- مودال إنشاء/تعديل مشروع -->
+    <div id="project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="modal-title" class="text-xl font-semibold text-gray-900 dark:text-white">إنشاء مشروع جديد</h3>
+                <button id="close-modal" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <form id="project-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        اسم المشروع *
+                    </label>
+                    <input
+                        type="text"
+                        id="project-name"
+                        name="name"
+                        required
+                        placeholder="أدخل اسم المشروع..."
+                        class="w-full px-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-primary-sand focus:outline-none transition-colors"
+                    />
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        وصف المشروع
+                    </label>
+                    <textarea
+                        id="project-description"
+                        name="description"
+                        rows="3"
+                        placeholder="اكتب وصفاً للمشروع..."
+                        class="w-full px-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-primary-sand focus:outline-none transition-colors resize-none"
+                    ></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            مدير المشروع *
+                        </label>
+                        <select
+                            id="project-manager"
+                            name="managerId"
+                            required
+                            class="w-full px-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors"
+                        >
+                            <option value="">اختر المدير</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            لون المشروع
+                        </label>
+                        <div class="flex gap-2">
+                            <input
+                                type="color"
+                                id="project-color"
+                                name="color"
+                                value="#3B82F6"
+                                class="w-12 h-12 rounded-lg border-2 border-gray-300 dark:border-gray-600 cursor-pointer"
+                            />
+                            <input
+                                type="text"
+                                id="project-color-text"
+                                value="#3B82F6"
+                                class="flex-1 px-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors"
+                            />
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            تاريخ البداية
+                        </label>
+                        <input
+                            type="date"
+                            id="project-start-date"
+                            name="startDate"
+                            class="w-full px-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            تاريخ الانتهاء المتوقع
+                        </label>
+                        <input
+                            type="date"
+                            id="project-end-date"
+                            name="endDate"
+                            class="w-full px-4 py-3 rounded-2xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors"
+                        />
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        أعضاء الفريق
+                    </label>
+                    <div id="team-members-container" class="space-y-2">
+                        <!-- سيتم ملء أعضاء الفريق بواسطة JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button 
+                        type="button"
+                        id="cancel-btn"
+                        class="px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        إلغاء
+                    </button>
+                    
+                    <button 
+                        type="submit"
+                        id="save-project-btn"
+                        class="px-6 py-3 bg-gradient-to-r from-primary-sand to-primary-light text-white rounded-2xl hover:from-primary-light hover:to-primary-sand transition-all duration-300"
+                    >
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="save" class="w-5 h-5"></i>
+                            <span>حفظ المشروع</span>
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مودال تفاصيل المشروع -->
+    <div id="project-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-4xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="details-modal-title" class="text-xl font-semibold text-gray-900 dark:text-white">تفاصيل المشروع</h3>
+                <button id="close-details-modal" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div id="project-details-content">
+                <!-- سيتم ملء المحتوى بواسطة JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- تضمين الملفات المطلوبة -->
+    <script src="./assets/js/utils.js"></script>
+    <script src="./assets/js/auth.js"></script>
+    <script src="./assets/js/UserManager.js"></script>
+    <script src="./assets/js/TaskManager.js"></script>
+
+    <script>
+        // صفحة إدارة المشاريع
+        class ProjectsPage {
+            constructor() {
+                this.currentView = 'cards'; // cards or table
+                this.filters = {
+                    search: '',
+                    status: 'all',
+                    manager: 'all'
+                };
+                this.currentUser = null;
+                this.editingProject = null;
+                
+                this.init();
+            }
+
+            init() {
+                console.log('🚀 تهيئة صفحة إدارة المشاريع...');
+                
+                this.checkPermissions();
+                this.loadFilterOptions();
+                this.loadProjectsStats();
+                this.loadProjects();
+                this.bindEvents();
+                this.updateIcons();
+                
+                console.log('✅ تم تحميل صفحة إدارة المشاريع');
+            }
+
+            checkPermissions() {
+                this.currentUser = authManager.getCurrentUser();
+                if (!this.currentUser) {
+                    window.location.href = './index.html';
+                    return;
+                }
+            }
+
+            loadFilterOptions() {
+                // تحميل مديري المشاريع
+                const managerFilter = document.getElementById('manager-filter');
+                const managers = userManager.getAllUsers().filter(user => 
+                    user.isActive && ['admin', 'owner', 'manager'].includes(user.role)
+                );
+                
+                managerFilter.innerHTML = '<option value="all">جميع المديرين</option>' +
+                    managers.map(manager => 
+                        `<option value="${manager.id}">${manager.name}</option>`
+                    ).join('');
+
+                // تحميل أعضاء الفريق للنموذج
+                this.loadTeamMembersForm();
+                this.loadManagersForm();
+            }
+
+            loadManagersForm() {
+                const managerSelect = document.getElementById('project-manager');
+                const managers = userManager.getAllUsers().filter(user => 
+                    user.isActive && ['admin', 'owner', 'manager'].includes(user.role)
+                );
+                
+                managerSelect.innerHTML = '<option value="">اختر المدير</option>' +
+                    managers.map(manager => 
+                        `<option value="${manager.id}">${manager.name} - ${ROLE_NAMES[manager.role]}</option>`
+                    ).join('');
+            }
+
+            loadTeamMembersForm() {
+                const container = document.getElementById('team-members-container');
+                const users = userManager.getAllUsers().filter(user => user.isActive);
+                
+                container.innerHTML = users.map(user => `
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                        <input type="checkbox" name="teamMembers" value="${user.id}" class="rounded">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-sand to-primary-light flex items-center justify-center text-white text-sm font-bold">
+                                ${user.name.charAt(0)}
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">${user.name}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">${ROLE_NAMES[user.role]}</p>
+                            </div>
+                        </div>
+                    </label>
+                `).join('');
+            }
+
+            loadProjectsStats() {
+                const projects = taskManager.getAllProjects();
+                const activeProjects = projects.filter(p => p.status === 'active').length;
+                const completedProjects = projects.filter(p => p.status === 'completed').length;
+                const onHoldProjects = projects.filter(p => p.status === 'on_hold').length;
+                const totalTasks = taskManager.tasks.length;
+                
+                const statsContainer = document.getElementById('projects-stats');
+                
+                statsContainer.innerHTML = `
+                    <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
+                                <i data-lucide="folder" class="w-6 h-6 text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-gray-900 dark:text-white">${projects.length}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">إجمالي المشاريع</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-xl flex items-center justify-center">
+                                <i data-lucide="play-circle" class="w-6 h-6 text-green-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-green-600">${activeProjects}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">مشاريع نشطة</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-xl flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-6 h-6 text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-blue-600">${completedProjects}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">مشاريع مكتملة</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-primary-sand/20 rounded-xl flex items-center justify-center">
+                                <i data-lucide="list-checks" class="w-6 h-6 text-primary-sand"></i>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-primary-sand">${totalTasks}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">إجمالي المهام</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                this.updateIcons();
+            }
+
+            loadProjects() {
+                const loadingState = document.getElementById('loading-state');
+                const emptyState = document.getElementById('empty-state');
+                
+                loadingState.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                
+                setTimeout(() => {
+                    const projects = this.getFilteredProjects();
+                    
+                    loadingState.classList.add('hidden');
+                    
+                    if (projects.length === 0) {
+                        emptyState.classList.remove('hidden');
+                        return;
+                    }
+                    
+                    emptyState.classList.add('hidden');
+                    
+                    if (this.currentView === 'cards') {
+                        this.loadProjectCards(projects);
+                    } else {
+                        this.loadProjectTable(projects);
+                    }
+                }, 500);
+            }
+
+            getFilteredProjects() {
+                let projects = taskManager.getAllProjects();
+                
+                if (this.filters.search) {
+                    projects = projects.filter(project =>
+                        project.name.toLowerCase().includes(this.filters.search.toLowerCase()) ||
+                        (project.description && project.description.toLowerCase().includes(this.filters.search.toLowerCase()))
+                    );
+                }
+                
+                if (this.filters.status !== 'all') {
+                    projects = projects.filter(project => project.status === this.filters.status);
+               }
+               
+               if (this.filters.manager !== 'all') {
+                   projects = projects.filter(project => project.managerId === this.filters.manager);
+               }
+               
+               return projects;
+           }
+
+           loadProjectCards(projects) {
+               const grid = document.getElementById('projects-grid');
+               
+               grid.innerHTML = projects.map(project => {
+                   const manager = userManager.getUserById(project.managerId);
+                   const projectTasks = taskManager.getTasksByProject(project.id);
+                   const completedTasks = projectTasks.filter(task => task.status === TASK_STATUS.APPROVED).length;
+                   const progressPercentage = projectTasks.length > 0 ? 
+                       Math.round((completedTasks / projectTasks.length) * 100) : 0;
+                   
+                   const teamMembers = project.teamMembers?.map(memberId => 
+                       userManager.getUserById(memberId)
+                   ).filter(Boolean) || [];
+                   
+                   return `
+                       <div class="project-card bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 fade-in">
+                           <div class="flex items-start justify-between mb-4">
+                               <div class="flex-1">
+                                   <div class="flex items-center gap-3 mb-2">
+                                       <div class="w-3 h-3 rounded-full" style="background-color: ${project.color || '#3B82F6'}"></div>
+                                       <h3 class="text-lg font-bold text-gray-900 dark:text-white">${project.name}</h3>
+                                   </div>
+                                   ${project.description ? `
+                                       <p class="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">${project.description}</p>
+                                   ` : ''}
+                               </div>
+                               
+                               <div class="flex items-center gap-1">
+                                   <button onclick="projectsPage.viewProject('${project.id}')" class="p-2 text-gray-400 hover:text-primary-sand rounded-lg transition-colors" title="عرض التفاصيل">
+                                       <i data-lucide="eye" class="w-4 h-4"></i>
+                                   </button>
+                                   <button onclick="projectsPage.editProject('${project.id}')" class="p-2 text-gray-400 hover:text-blue-500 rounded-lg transition-colors" title="تعديل">
+                                       <i data-lucide="edit" class="w-4 h-4"></i>
+                                   </button>
+                                   <button onclick="projectsPage.deleteProject('${project.id}')" class="p-2 text-gray-400 hover:text-red-500 rounded-lg transition-colors" title="حذف">
+                                       <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                   </button>
+                               </div>
+                           </div>
+                           
+                           <div class="mb-4">
+                               <div class="flex items-center justify-between mb-2">
+                                   <span class="text-sm font-medium text-gray-700 dark:text-gray-300">التقدم</span>
+                                   <span class="text-sm font-bold text-gray-900 dark:text-white">${progressPercentage}%</span>
+                               </div>
+                               <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                   <div class="progress-bar h-2 rounded-full" style="width: ${progressPercentage}%; background-color: ${project.color || '#3B82F6'}"></div>
+                               </div>
+                           </div>
+                           
+                           <div class="flex items-center justify-between mb-4">
+                               <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                   <i data-lucide="list-checks" class="w-4 h-4"></i>
+                                   <span>${completedTasks}/${projectTasks.length} مهام</span>
+                               </div>
+                               
+                               <span class="status-${project.status} px-3 py-1 text-xs font-medium rounded-full">
+                                   ${PROJECT_STATUS_NAMES[project.status]}
+                               </span>
+                           </div>
+                           
+                           <div class="flex items-center justify-between">
+                               <div class="flex items-center gap-2">
+                                   <div class="w-6 h-6 rounded-full bg-gradient-to-br from-primary-sand to-primary-light flex items-center justify-center text-white text-xs font-bold">
+                                       ${manager ? manager.name.charAt(0) : '؟'}
+                                   </div>
+                                   <span class="text-sm text-gray-600 dark:text-gray-400">
+                                       ${manager ? manager.name : 'غير محدد'}
+                                   </span>
+                               </div>
+                               
+                               ${teamMembers.length > 0 ? `
+                                   <div class="flex items-center gap-1">
+                                       <div class="flex -space-x-2">
+                                           ${teamMembers.slice(0, 3).map(member => `
+                                               <div class="team-avatar w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-gray-900" title="${member.name}">
+                                                   ${member.name.charAt(0)}
+                                               </div>
+                                           `).join('')}
+                                           ${teamMembers.length > 3 ? `
+                                               <div class="w-6 h-6 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-gray-900">
+                                                   +${teamMembers.length - 3}
+                                               </div>
+                                           ` : ''}
+                                       </div>
+                                   </div>
+                               ` : ''}
+                           </div>
+                           
+                           ${project.endDate ? `
+                               <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                   <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                       <i data-lucide="calendar" class="w-4 h-4"></i>
+                                       <span>ينتهي في ${DateUtils.formatDate(project.endDate)}</span>
+                                   </div>
+                               </div>
+                           ` : ''}
+                       </div>
+                   `;
+               }).join('');
+               
+               this.updateIcons();
+           }
+
+           loadProjectTable(projects) {
+               const tableBody = document.getElementById('projects-table-body');
+               const countElement = document.getElementById('projects-count');
+               
+               countElement.textContent = `${projects.length} مشروع`;
+               
+               tableBody.innerHTML = projects.map(project => {
+                   const manager = userManager.getUserById(project.managerId);
+                   const projectTasks = taskManager.getTasksByProject(project.id);
+                   const completedTasks = projectTasks.filter(task => task.status === TASK_STATUS.APPROVED).length;
+                   const progressPercentage = projectTasks.length > 0 ? 
+                       Math.round((completedTasks / projectTasks.length) * 100) : 0;
+                   
+                   return `
+                       <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                           <td class="px-6 py-4">
+                               <div class="flex items-center gap-3">
+                                   <div class="w-3 h-3 rounded-full" style="background-color: ${project.color || '#3B82F6'}"></div>
+                                   <div>
+                                       <p class="font-medium text-gray-900 dark:text-white">${project.name}</p>
+                                       ${project.description ? `
+                                           <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">${project.description}</p>
+                                       ` : ''}
+                                   </div>
+                               </div>
+                           </td>
+                           <td class="px-6 py-4">
+                               <div class="flex items-center gap-2">
+                                   <div class="w-6 h-6 rounded-full bg-gradient-to-br from-primary-sand to-primary-light flex items-center justify-center text-white text-xs font-bold">
+                                       ${manager ? manager.name.charAt(0) : '؟'}
+                                   </div>
+                                   <span class="text-sm text-gray-900 dark:text-white">
+                                       ${manager ? manager.name : 'غير محدد'}
+                                   </span>
+                               </div>
+                           </td>
+                           <td class="px-6 py-4">
+                               <span class="status-${project.status} px-3 py-1 text-xs font-medium rounded-full">
+                                   ${PROJECT_STATUS_NAMES[project.status]}
+                               </span>
+                           </td>
+                           <td class="px-6 py-4">
+                               <div class="flex items-center gap-3">
+                                   <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                       <div class="h-2 rounded-full transition-all duration-300" style="width: ${progressPercentage}%; background-color: ${project.color || '#3B82F6'}"></div>
+                                   </div>
+                                   <span class="text-sm font-medium text-gray-900 dark:text-white">${progressPercentage}%</span>
+                               </div>
+                           </td>
+                           <td class="px-6 py-4">
+                               <span class="text-sm text-gray-900 dark:text-white">${completedTasks}/${projectTasks.length}</span>
+                           </td>
+                           <td class="px-6 py-4">
+                               <span class="text-sm text-gray-500 dark:text-gray-400">
+                                   ${DateUtils.formatDate(project.createdAt)}
+                               </span>
+                           </td>
+                           <td class="px-6 py-4">
+                               <div class="flex items-center gap-1">
+                                   <button onclick="projectsPage.viewProject('${project.id}')" class="p-2 text-gray-400 hover:text-primary-sand rounded-lg transition-colors" title="عرض التفاصيل">
+                                       <i data-lucide="eye" class="w-4 h-4"></i>
+                                   </button>
+                                   <button onclick="projectsPage.editProject('${project.id}')" class="p-2 text-gray-400 hover:text-blue-500 rounded-lg transition-colors" title="تعديل">
+                                       <i data-lucide="edit" class="w-4 h-4"></i>
+                                   </button>
+                                   <button onclick="projectsPage.deleteProject('${project.id}')" class="p-2 text-gray-400 hover:text-red-500 rounded-lg transition-colors" title="حذف">
+                                       <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                   </button>
+                               </div>
+                           </td>
+                       </tr>
+                   `;
+               }).join('');
+               
+               this.updateIcons();
+           }
+
+           toggleView() {
+               const cardsView = document.getElementById('cards-view');
+               const tableView = document.getElementById('table-view');
+               const toggleBtn = document.getElementById('view-toggle-btn');
+               
+               if (this.currentView === 'cards') {
+                   this.currentView = 'table';
+                   cardsView.classList.add('hidden');
+                   tableView.classList.remove('hidden');
+                   toggleBtn.innerHTML = '<i data-lucide="grid-3x3" class="w-5 h-5"></i>';
+               } else {
+                   this.currentView = 'cards';
+                   cardsView.classList.remove('hidden');
+                   tableView.classList.add('hidden');
+                   toggleBtn.innerHTML = '<i data-lucide="layout-grid" class="w-5 h-5"></i>';
+               }
+               
+               this.loadProjects();
+               this.updateIcons();
+           }
+
+           openCreateModal() {
+               const modal = document.getElementById('project-modal');
+               const modalTitle = document.getElementById('modal-title');
+               const form = document.getElementById('project-form');
+               
+               this.editingProject = null;
+               modalTitle.textContent = 'إنشاء مشروع جديد';
+               form.reset();
+               
+               // تعيين لون افتراضي
+               document.getElementById('project-color').value = '#3B82F6';
+               document.getElementById('project-color-text').value = '#3B82F6';
+               
+               // إلغاء تحديد جميع أعضاء الفريق
+               const checkboxes = document.querySelectorAll('input[name="teamMembers"]');
+               checkboxes.forEach(checkbox => checkbox.checked = false);
+               
+               modal.classList.remove('hidden');
+           }
+
+           editProject(projectId) {
+               const project = taskManager.getProjectById(projectId);
+               if (!project) return;
+               
+               const modal = document.getElementById('project-modal');
+               const modalTitle = document.getElementById('modal-title');
+               
+               this.editingProject = project;
+               modalTitle.textContent = 'تعديل المشروع';
+               
+               // ملء النموذج
+               document.getElementById('project-name').value = project.name;
+               document.getElementById('project-description').value = project.description || '';
+               document.getElementById('project-manager').value = project.managerId || '';
+               document.getElementById('project-color').value = project.color || '#3B82F6';
+               document.getElementById('project-color-text').value = project.color || '#3B82F6';
+               document.getElementById('project-start-date').value = project.startDate || '';
+               document.getElementById('project-end-date').value = project.endDate || '';
+               
+               // تحديد أعضاء الفريق
+               const checkboxes = document.querySelectorAll('input[name="teamMembers"]');
+               checkboxes.forEach(checkbox => {
+                   checkbox.checked = project.teamMembers?.includes(checkbox.value) || false;
+               });
+               
+               modal.classList.remove('hidden');
+           }
+
+           viewProject(projectId) {
+               const project = taskManager.getProjectById(projectId);
+               if (!project) return;
+               
+               const modal = document.getElementById('project-details-modal');
+               const title = document.getElementById('details-modal-title');
+               const content = document.getElementById('project-details-content');
+               
+               title.textContent = project.name;
+               
+               const manager = userManager.getUserById(project.managerId);
+               const projectTasks = taskManager.getTasksByProject(projectId);
+               const teamMembers = project.teamMembers?.map(memberId => 
+                   userManager.getUserById(memberId)
+               ).filter(Boolean) || [];
+               
+               const completedTasks = projectTasks.filter(task => task.status === TASK_STATUS.APPROVED).length;
+               const progressPercentage = projectTasks.length > 0 ? 
+                   Math.round((completedTasks / projectTasks.length) * 100) : 0;
+               
+               const tasksByStatus = {
+                   pending: projectTasks.filter(task => task.status === TASK_STATUS.PENDING).length,
+                   in_progress: projectTasks.filter(task => task.status === TASK_STATUS.IN_PROGRESS).length,
+                   completed: completedTasks,
+                   rejected: projectTasks.filter(task => task.status === TASK_STATUS.REJECTED).length
+               };
+               
+               content.innerHTML = `
+                   <div class="space-y-6">
+                       <!-- معلومات أساسية -->
+                       <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6">
+                           <div class="flex items-start gap-4 mb-4">
+                               <div class="w-4 h-4 rounded-full" style="background-color: ${project.color || '#3B82F6'}"></div>
+                               <div class="flex-1">
+                                   <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-2">${project.name}</h4>
+                                   ${project.description ? `
+                                       <p class="text-gray-600 dark:text-gray-400">${project.description}</p>
+                                   ` : ''}
+                               </div>
+                               <span class="status-${project.status} px-3 py-1 text-sm font-medium rounded-full">
+                                   ${PROJECT_STATUS_NAMES[project.status]}
+                               </span>
+                           </div>
+                       </div>
+                       
+                       <!-- إحصائيات -->
+                       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                           <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 text-center">
+                               <p class="text-2xl font-bold text-blue-600">${projectTasks.length}</p>
+                               <p class="text-sm text-blue-600">إجمالي المهام</p>
+                           </div>
+                           <div class="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 text-center">
+                               <p class="text-2xl font-bold text-green-600">${tasksByStatus.completed}</p>
+                               <p class="text-sm text-green-600">مكتملة</p>
+                           </div>
+                           <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 text-center">
+                               <p class="text-2xl font-bold text-yellow-600">${tasksByStatus.in_progress}</p>
+                               <p class="text-sm text-yellow-600">قيد التنفيذ</p>
+                           </div>
+                           <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                               <p class="text-2xl font-bold text-gray-600">${tasksByStatus.pending}</p>
+                               <p class="text-sm text-gray-600 dark:text-gray-400">في الانتظار</p>
+                           </div>
+                       </div>
+                       
+                       <!-- التقدم -->
+                       <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+                           <h5 class="font-semibold text-gray-900 dark:text-white mb-4">تقدم المشروع</h5>
+                           <div class="flex items-center gap-4 mb-2">
+                               <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                                   <div class="h-3 rounded-full transition-all duration-500" style="width: ${progressPercentage}%; background-color: ${project.color || '#3B82F6'}"></div>
+                               </div>
+                               <span class="text-lg font-bold text-gray-900 dark:text-white">${progressPercentage}%</span>
+                           </div>
+                           <p class="text-sm text-gray-500 dark:text-gray-400">تم إنجاز ${completedTasks} من ${projectTasks.length} مهام</p>
+                       </div>
+                       
+                       <!-- معلومات إضافية -->
+                       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+                               <h5 class="font-semibold text-gray-900 dark:text-white mb-4">معلومات المشروع</h5>
+                               <div class="space-y-3">
+                                   <div class="flex items-center gap-3">
+                                       <i data-lucide="user" class="w-4 h-4 text-gray-400"></i>
+                                       <span class="text-sm text-gray-600 dark:text-gray-400">المدير:</span>
+                                       <span class="text-sm font-medium text-gray-900 dark:text-white">
+                                           ${manager ? manager.name : 'غير محدد'}
+                                       </span>
+                                   </div>
+                                   ${project.startDate ? `
+                                       <div class="flex items-center gap-3">
+                                           <i data-lucide="calendar" class="w-4 h-4 text-gray-400"></i>
+                                           <span class="text-sm text-gray-600 dark:text-gray-400">تاريخ البداية:</span>
+                                           <span class="text-sm font-medium text-gray-900 dark:text-white">
+                                               ${DateUtils.formatDate(project.startDate)}
+                                           </span>
+                                       </div>
+                                   ` : ''}
+                                   ${project.endDate ? `
+                                       <div class="flex items-center gap-3">
+                                           <i data-lucide="calendar-days" class="w-4 h-4 text-gray-400"></i>
+                                           <span class="text-sm text-gray-600 dark:text-gray-400">تاريخ الانتهاء:</span>
+                                           <span class="text-sm font-medium text-gray-900 dark:text-white">
+                                               ${DateUtils.formatDate(project.endDate)}
+                                           </span>
+                                       </div>
+                                   ` : ''}
+                                   <div class="flex items-center gap-3">
+                                       <i data-lucide="clock" class="w-4 h-4 text-gray-400"></i>
+                                       <span class="text-sm text-gray-600 dark:text-gray-400">تاريخ الإنشاء:</span>
+                                       <span class="text-sm font-medium text-gray-900 dark:text-white">
+                                           ${DateUtils.formatDate(project.createdAt)}
+                                       </span>
+                                   </div>
+                               </div>
+                           </div>
+                           
+                           <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+                               <h5 class="font-semibold text-gray-900 dark:text-white mb-4">فريق العمل</h5>
+                               ${teamMembers.length > 0 ? `
+                                   <div class="space-y-3">
+                                       ${teamMembers.map(member => `
+                                           <div class="flex items-center gap-3">
+                                               <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                                                   ${member.name.charAt(0)}
+                                               </div>
+                                               <div>
+                                                   <p class="text-sm font-medium text-gray-900 dark:text-white">${member.name}</p>
+                                                   <p class="text-xs text-gray-500 dark:text-gray-400">${ROLE_NAMES[member.role]}</p>
+                                               </div>
+                                           </div>
+                                       `).join('')}
+                                   </div>
+                               ` : `
+                                   <p class="text-sm text-gray-500 dark:text-gray-400">لم يتم تعيين أعضاء فريق</p>
+                               `}
+                           </div>
+                       </div>
+                       
+                       <!-- المهام الأخيرة -->
+                       ${projectTasks.length > 0 ? `
+                           <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
+                               <div class="flex items-center justify-between mb-4">
+                                   <h5 class="font-semibold text-gray-900 dark:text-white">المهام الأخيرة</h5>
+                                   <a href="./tasks.html?project=${project.id}" class="text-primary-sand hover:text-primary-dark text-sm font-medium">
+                                       عرض جميع المهام →
+                                   </a>
+                               </div>
+                               <div class="space-y-3">
+                                   ${projectTasks.slice(0, 5).map(task => {
+                                       const assignee = userManager.getUserById(task.assignedTo);
+                                       return `
+                                           <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                               <div class="flex items-center gap-3">
+                                                   <div class="w-2 h-2 rounded-full bg-${task.status === TASK_STATUS.APPROVED ? 'green' : task.status === TASK_STATUS.IN_PROGRESS ? 'yellow' : 'gray'}-500"></div>
+                                                   <div>
+                                                       <p class="text-sm font-medium text-gray-900 dark:text-white">${task.title}</p>
+                                                       <p class="text-xs text-gray-500 dark:text-gray-400">
+                                                           ${assignee ? assignee.name : 'غير مُكلف'} • ${DateUtils.formatDate(task.dueDate)}
+                                                       </p>
+                                                   </div>
+                                               </div>
+                                               <span class="text-xs px-2 py-1 rounded-full bg-${task.priority === TASK_PRIORITY.URGENT ? 'red' : task.priority === TASK_PRIORITY.HIGH ? 'orange' : 'green'}-100 text-${task.priority === TASK_PRIORITY.URGENT ? 'red' : task.priority === TASK_PRIORITY.HIGH ? 'orange' : 'green'}-800">
+                                                   ${PRIORITY_NAMES[task.priority]}
+                                               </span>
+                                           </div>
+                                       `;
+                                   }).join('')}
+                               </div>
+                           </div>
+                       ` : ''}
+                   </div>
+               `;
+               
+               modal.classList.remove('hidden');
+               this.updateIcons();
+           }
+
+           deleteProject(projectId) {
+               const project = taskManager.getProjectById(projectId);
+               if (!project) return;
+               
+               const projectTasks = taskManager.getTasksByProject(projectId);
+               
+               let confirmMessage = `هل أنت متأكد من حذف المشروع "${project.name}"؟`;
+               if (projectTasks.length > 0) {
+                   confirmMessage += `\n\nسيتم حذف ${projectTasks.length} مهمة مرتبطة بالمشروع.`;
+               }
+               
+               if (confirm(confirmMessage)) {
+                   try {
+                       // حذف المهام المرتبطة أولاً
+                       projectTasks.forEach(task => {
+                           taskManager.deleteTask(task.id);
+                       });
+                       
+                       // حذف المشروع
+                       this.deleteProjectFromStorage(projectId);
+                       
+                       UIUtils.showToast('تم حذف المشروع بنجاح', 'success');
+                       this.loadProjectsStats();
+                       this.loadProjects();
+                       
+                   } catch (error) {
+                       console.error('خطأ في حذف المشروع:', error);
+                       UIUtils.showToast('حدث خطأ في حذف المشروع', 'error');
+                   }
+               }
+           }
+
+           deleteProjectFromStorage(projectId) {
+               // حذف المشروع من قائمة المشاريع
+               taskManager.projects = taskManager.projects.filter(p => p.id !== projectId);
+               taskManager.saveData();
+           }
+
+           handleProjectForm(e) {
+               e.preventDefault();
+               
+               const formData = new FormData(e.target);
+               const teamMembers = Array.from(document.querySelectorAll('input[name="teamMembers"]:checked'))
+                   .map(checkbox => checkbox.value);
+               
+               const projectData = {
+                   name: formData.get('name'),
+                   description: formData.get('description'),
+                   managerId: formData.get('managerId'),
+                   color: formData.get('color'),
+                   startDate: formData.get('startDate'),
+                   endDate: formData.get('endDate'),
+                   teamMembers: teamMembers,
+                   status: 'active'
+               };
+               
+               try {
+                   if (this.editingProject) {
+                       // تعديل مشروع موجود
+                       this.updateProjectInStorage(this.editingProject.id, projectData);
+                       UIUtils.showToast('تم تعديل المشروع بنجاح', 'success');
+                   } else {
+                       // إنشاء مشروع جديد
+                       taskManager.createProject(projectData);
+                       UIUtils.showToast('تم إنشاء المشروع بنجاح', 'success');
+                   }
+                   
+                   this.closeModal();
+                   this.loadProjectsStats();
+                   this.loadProjects();
+                   
+               } catch (error) {
+                   console.error('خطأ في حفظ المشروع:', error);
+                   UIUtils.showToast('حدث خطأ في حفظ المشروع', 'error');
+               }
+           }
+
+           updateProjectInStorage(projectId, updates) {
+               const projectIndex = taskManager.projects.findIndex(p => p.id === projectId);
+               if (projectIndex !== -1) {
+                   taskManager.projects[projectIndex] = {
+                       ...taskManager.projects[projectIndex],
+                       ...updates,
+                       updatedAt: new Date().toISOString()
+                   };
+                   taskManager.saveData();
+               }
+           }
+
+           closeModal() {
+               const modal = document.getElementById('project-modal');
+               const detailsModal = document.getElementById('project-details-modal');
+               
+               modal.classList.add('hidden');
+               detailsModal.classList.add('hidden');
+               
+               this.editingProject = null;
+           }
+
+           applyFilters() {
+               this.filters.search = document.getElementById('search-input').value;
+               this.filters.status = document.getElementById('status-filter').value;
+               this.filters.manager = document.getElementById('manager-filter').value;
+               
+               this.loadProjects();
+           }
+
+           resetFilters() {
+               document.getElementById('search-input').value = '';
+               document.getElementById('status-filter').value = 'all';
+               document.getElementById('manager-filter').value = 'all';
+               
+               this.filters = {
+                   search: '',
+                   status: 'all',
+                   manager: 'all'
+               };
+               
+               this.loadProjects();
+           }
+
+           exportProjects() {
+               try {
+                   const projects = this.getFilteredProjects();
+                   const exportData = projects.map(project => {
+                       const manager = userManager.getUserById(project.managerId);
+                       const projectTasks = taskManager.getTasksByProject(project.id);
+                       const completedTasks = projectTasks.filter(task => task.status === TASK_STATUS.APPROVED).length;
+                       const progressPercentage = projectTasks.length > 0 ? 
+                           Math.round((completedTasks / projectTasks.length) * 100) : 0;
+                       
+                       return {
+                           'اسم المشروع': project.name,
+                           'الوصف': project.description || '',
+                           'المدير': manager ? manager.name : 'غير محدد',
+                           'الحالة': PROJECT_STATUS_NAMES[project.status],
+                           'التقدم': `${progressPercentage}%`,
+                           'عدد المهام': projectTasks.length,
+                           'المهام المكتملة': completedTasks,
+                           'تاريخ البداية': project.startDate ? DateUtils.formatDate(project.startDate) : '',
+                           'تاريخ الانتهاء': project.endDate ? DateUtils.formatDate(project.endDate) : '',
+                           'تاريخ الإنشاء': DateUtils.formatDate(project.createdAt)
+                       };
+                   });
+                   
+                   // تحويل إلى CSV
+                   const csvContent = this.convertToCSV(exportData);
+                   
+                   // تحميل الملف
+                   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                   const link = document.createElement('a');
+                   const url = URL.createObjectURL(blob);
+                   
+                   link.setAttribute('href', url);
+                   link.setAttribute('download', `مشاريع_${new Date().toISOString().split('T')[0]}.csv`);
+                   link.style.visibility = 'hidden';
+                   
+                   document.body.appendChild(link);
+                   link.click();
+                   document.body.removeChild(link);
+                   
+                   UIUtils.showToast('تم تصدير المشاريع بنجاح', 'success');
+                   
+               } catch (error) {
+                   console.error('خطأ في تصدير المشاريع:', error);
+                   UIUtils.showToast('حدث خطأ في تصدير المشاريع', 'error');
+               }
+           }
+
+           convertToCSV(data) {
+               if (data.length === 0) return '';
+               
+               const headers = Object.keys(data[0]);
+               const csvRows = [];
+               
+               // إضافة العناوين
+               csvRows.push(headers.join(','));
+               
+               // إضافة البيانات
+               for (const row of data) {
+                   const values = headers.map(header => {
+                       const escaped = ('' + row[header]).replace(/"/g, '\\"');
+                       return `"${escaped}"`;
+                   });
+                   csvRows.push(values.join(','));
+               }
+               
+               return csvRows.join('\n');
+           }
+
+           handleColorChange() {
+               const colorPicker = document.getElementById('project-color');
+               const colorText = document.getElementById('project-color-text');
+               
+               colorPicker.addEventListener('change', (e) => {
+                   colorText.value = e.target.value;
+               });
+               
+               colorText.addEventListener('change', (e) => {
+                   if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                       colorPicker.value = e.target.value;
+                   }
+               });
+           }
+
+           bindEvents() {
+               // أزرار الواجهة الرئيسية
+               document.getElementById('create-project-btn').addEventListener('click', () => this.openCreateModal());
+               document.getElementById('view-toggle-btn').addEventListener('click', () => this.toggleView());
+               document.getElementById('export-btn').addEventListener('click', () => this.exportProjects());
+
+               // أدوات البحث والفلترة
+               document.getElementById('search-input').addEventListener('input', (e) => {
+                   clearTimeout(this.searchTimeout);
+                   this.searchTimeout = setTimeout(() => this.applyFilters(), 300);
+               });
+               
+               document.getElementById('status-filter').addEventListener('change', () => this.applyFilters());
+               document.getElementById('manager-filter').addEventListener('change', () => this.applyFilters());
+               document.getElementById('reset-filters-btn').addEventListener('click', () => this.resetFilters());
+
+               // مودال المشروع
+               document.getElementById('close-modal').addEventListener('click', () => this.closeModal());
+               document.getElementById('cancel-btn').addEventListener('click', () => this.closeModal());
+               document.getElementById('close-details-modal').addEventListener('click', () => this.closeModal());
+               
+               // إغلاق المودال عند النقر خارجه
+               document.getElementById('project-modal').addEventListener('click', (e) => {
+                   if (e.target.id === 'project-modal') {
+                       this.closeModal();
+                   }
+               });
+               
+               document.getElementById('project-details-modal').addEventListener('click', (e) => {
+                   if (e.target.id === 'project-details-modal') {
+                       this.closeModal();
+                   }
+               });
+
+               // نموذج المشروع
+               document.getElementById('project-form').addEventListener('submit', (e) => this.handleProjectForm(e));
+
+               // تعامل مع اللون
+               this.handleColorChange();
+
+               // مفاتيح الاختصار
+               document.addEventListener('keydown', (e) => {
+                   if (e.ctrlKey && e.key === 'n') {
+                       e.preventDefault();
+                       this.openCreateModal();
+                   } else if (e.key === 'Escape') {
+                       this.closeModal();
+                   }
+               });
+           }
+
+           updateIcons() {
+               if (window.lucide) {
+                   lucide.createIcons();
+               }
+           }
+       }
+
+       // ثوابت المشروع
+       const PROJECT_STATUS_NAMES = {
+           active: 'نشطة',
+           completed: 'مكتملة',
+           on_hold: 'معلقة',
+           cancelled: 'ملغية'
+       };
+
+       // متغير عام للوصول للكلاس
+       let projectsPage;
+
+       // تهيئة الصفحة عند تحميل الـ DOM
+       document.addEventListener('DOMContentLoaded', () => {
+           try {
+               projectsPage = new ProjectsPage();
+               console.log('✅ تم تحميل صفحة إدارة المشاريع بنجاح');
+           } catch (error) {
+               console.error('❌ خطأ في تحميل صفحة إدارة المشاريع:', error);
+           }
+       });
+   </script>
+
+</body>
+</html>

@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقارير والإحصائيات - كوريان كاسيل</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            light: '#FADC9B',
+                            sand: '#A68F51',
+                            dark: '#8B7355'
+                        }
+                    },
+                    fontFamily: {
+                        arabic: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        
+        .report-card {
+            transition: all 0.3s ease;
+        }
+        .report-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(166, 143, 81, 0.1) 0%, rgba(250, 220, 155, 0.05) 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: scale(1.02);
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-circle {
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .grid-animation {
+            animation: gridAnimation 0.8s ease-out;
+        }
+        
+        @keyframes gridAnimation {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="font-arabic bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+
+    <div class="min-h-screen p-6">
+        
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">التقارير والإحصائيات</h1>
+                    <p class="text-gray-600 dark:text-gray-400">تحليل شامل لأداء الفريق والمشاريع</p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <button 
+                        id="export-all-btn"
+                        class="px-6 py-3 bg-gradient-to-r from-primary-sand to-primary-light text-white rounded-2xl hover:from-primary-light hover:to-primary-sand transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                    >
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                            <span>تصدير التقارير</span>
+                        </div>
+                    </button>
+                    
+                    <button 
+                        id="print-btn"
+                        class="px-6 py-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+                        title="طباعة"
+                    >
+                        <i data-lucide="printer" class="w-5 h-5"></i>
+                    </button>
+                    
+                    <button 
+                        id="refresh-btn"
+                        class="px-6 py-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
+                        title="تحديث البيانات"
+                    >
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- فلاتر الفترة الزمنية -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+                <div class="flex flex-col lg:flex-row gap-4">
+                    
+                    <div class="flex items-center gap-4">
+                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">الفترة الزمنية:</label>
+                        <select id="period-filter" class="px-4 py-2 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors">
+                            <option value="today">اليوم</option>
+                            <option value="week" selected>هذا الأسبوع</option>
+                            <option value="month">هذا الشهر</option>
+                            <option value="quarter">الربع الحالي</option>
+                            <option value="year">هذا العام</option>
+                            <option value="custom">فترة مخصصة</option>
+                        </select>
+                    </div>
+                    
+                    <div id="custom-date-range" class="hidden flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-gray-600 dark:text-gray-400">من:</label>
+                            <input type="date" id="start-date" class="px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-gray-600 dark:text-gray-400">إلى:</label>
+                            <input type="date" id="end-date" class="px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none">
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-4 ml-auto">
+                        <select id="project-filter" class="px-4 py-2 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors">
+                            <option value="all">جميع المشاريع</option>
+                        </select>
+                        
+                        <select id="user-filter" class="px-4 py-2 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:border-primary-sand focus:outline-none transition-colors">
+                            <option value="all">جميع الأعضاء</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- إحصائيات سريعة -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="quick-stats">
+            <!-- سيتم ملء الإحصائيات بواسطة JavaScript -->
+        </div>
+
+        <!-- الرسوم البيانية الرئيسية -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            
+            <!-- رسم بياني لتقدم المهام -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">تقدم المهام</h3>
+                    <div class="flex gap-2">
+                        <button id="tasks-chart-type" data-type="doughnut" class="px-3 py-1 text-xs bg-primary-sand text-white rounded-lg">دائري</button>
+                        <button onclick="reportsPage.switchChart('tasks', 'bar')" class="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">عمودي</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="tasks-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- رسم بياني لأداء الفريق -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">أداء الفريق</h3>
+                    <div class="flex gap-2">
+                        <button id="team-chart-type" data-type="bar" class="px-3 py-1 text-xs bg-primary-sand text-white rounded-lg">عمودي</button>
+                        <button onclick="reportsPage.switchChart('team', 'line')" class="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">خطي</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="team-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- تحليلات مفصلة -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            
+            <!-- كفاءة المشاريع -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">كفاءة المشاريع</h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="projects-efficiency-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- الإنتاجية الزمنية -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">الإنتاجية الزمنية</h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="productivity-timeline-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- توزيع الأولويات -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">توزيع الأولويات</h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="priorities-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- تقارير تفصيلية -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            
+            <!-- أداء الأعضاء -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">أداء الأعضاء</h3>
+                    <button id="export-team-performance" class="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <i data-lucide="download" class="w-4 h-4 inline ml-1"></i>
+                        تصدير
+                    </button>
+                </div>
+                
+                <div class="space-y-4" id="team-performance-list">
+                    <!-- سيتم ملء أداء الأعضاء بواسطة JavaScript -->
+                </div>
+            </div>
+            
+            <!-- المهام المتأخرة -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">المهام المتأخرة</h3>
+                    <span id="overdue-count" class="px-3 py-1 bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400 text-sm font-semibold rounded-full">0</span>
+                </div>
+                
+                <div class="space-y-3" id="overdue-tasks-list">
+                    <!-- سيتم ملء المهام المتأخرة بواسطة JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- تقرير مقارن شهري -->
+        <div class="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">المقارنة الشهرية</h3>
+                <div class="flex gap-2">
+                    <select id="comparison-months" class="px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:border-primary-sand focus:outline-none">
+                        <option value="3">آخر 3 شهور</option>
+                        <option value="6">آخر 6 شهور</option>
+                        <option value="12">آخر 12 شهر</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="monthly-comparison-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- ملخص الأداء -->
+        <div class="bg-gradient-to-r from-primary-sand/10 to-primary-light/5 dark:from-primary-sand/5 dark:to-primary-light/5 rounded-3xl border border-primary-sand/20 p-8">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">ملخص الأداء العام</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- معدل الإنجاز -->
+                <div class="text-center">
+                    <div class="relative w-32 h-32 mx-auto mb-4">
+                        <svg class="w-32 h-32 progress-ring" viewBox="0 0 36 36">
+                            <path
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                class="text-gray-200 dark:text-gray-700"
+                            />
+                            <path
+                                id="completion-rate-circle"
+                                class="progress-circle text-primary-sand"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="3"
+                                stroke-linecap="round"
+                                stroke-dasharray="100, 100"
+                                stroke-dashoffset="100"
+                            />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span id="completion-rate-text" class="text-2xl font-bold text-gray-900 dark:text-white">0%</span>
+                        </div>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">معدل الإنجاز</h4>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">نسبة المهام المكتملة</p>
+                </div>
+                
+                <!-- متوسط وقت الإنجاز -->
+                <div class="text-center">
+                    <div class="w-32 h-32 mx-auto mb-4 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-full flex items-center justify-center">
+                        <div class="text-center">
+                            <div id="avg-completion-time" class="text-3xl font-bold text-blue-600">0</div>
+                            <div class="text-sm text-blue-500">يوم</div>
+                        </div>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">متوسط وقت الإنجاز</h4>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">المدة المتوسطة لإكمال المهام</p>
+                </div>
+                
+                <!-- مستوى الرضا -->
+                <div class="text-center">
+                    <div class="w-32 h-32 mx-auto mb-4 bg-gradient-to-br from-green-500/20 to-green-600/10 rounded-full flex items-center justify-center">
+                        <div class="text-center">
+                            <div id="satisfaction-score" class="text-3xl font-bold text-green-600">0.0</div>
+                            <div class="text-sm text-green-500">من 5</div>
+                        </div>
+                    </div>
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">مستوى الرضا</h4>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm">متوسط تقييم جودة العمل</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- حالة التحميل -->
+        <div id="loading-state" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-sm mx-4 text-center">
+                <div class="w-12 h-12 border-4 border-primary-sand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">جاري تحليل البيانات</h3>
+                <p class="text-gray-600 dark:text-gray-400">يرجى الانتظار...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- تضمين الملفات المطلوبة -->
+    <script src="./assets/js/utils.js"></script>
+    <script src="./assets/js/auth.js"></script>
+    <script src="./assets/js/UserManager.js"></script>
+    <script src="./assets/js/TaskManager.js"></script>
+
+    <script>
+        // صفحة التقارير والإحصائيات
+        class ReportsPage {
+            constructor() {
+                this.charts = {};
+                this.currentPeriod = 'week';
+                this.currentProject = 'all';
+                this.currentUser = 'all';
+                this.startDate = null;
+                this.endDate = null;
+                this.reportData = {};
+                
+                this.init();
+            }
+
+            init() {
+                console.log('📊 تهيئة صفحة التقارير والإحصائيات...');
+                
+                this.checkPermissions();
+                this.setupFilters();
+                this.loadReportData();
+                this.bindEvents();
+                this.updateIcons();
+                
+                console.log('✅ تم تحميل صفحة التقارير');
+            }
+
+            checkPermissions() {
+                const currentUser = authManager.getCurrentUser();
+                if (!currentUser) {
+                    window.location.href = './index.html';
+                    return;
+                }
+            }
+
+            setupFilters() {
+                // تحميل المشاريع
+                const projectFilter = document.getElementById('project-filter');
+                const projects = taskManager.getAllProjects();
+                
+                projectFilter.innerHTML = '<option value="all">جميع المشاريع</option>' +
+                    projects.map(project => 
+                        `<option value="${project.id}">${project.name}</option>`
+                    ).join('');
+
+                // تحميل الأعضاء
+                const userFilter = document.getElementById('user-filter');
+                const users = userManager.getAllUsers().filter(user => user.isActive);
+                
+                userFilter.innerHTML = '<option value="all">جميع الأعضاء</option>' +
+                    users.map(user => 
+                        `<option value="${user.id}">${user.name}</option>`
+                    ).join('');
+
+                // تعيين التواريخ الافتراضية
+                this.setDefaultDates();
+            }
+
+            setDefaultDates() {
+                const now = new Date();
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                
+                document.getElementById('start-date').value = weekAgo.toISOString().split('T')[0];
+                document.getElementById('end-date').value = now.toISOString().split('T')[0];
+            }
+
+            async loadReportData() {
+                this.showLoading(true);
+                
+                try {
+                    // محاكاة تأخير التحميل
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // جمع البيانات
+                    this.reportData = this.gatherReportData();
+                    
+                    // تحديث الواجهة
+                    this.updateQuickStats();
+                    this.createCharts();
+                    this.updateDetailedReports();
+                    this.updatePerformanceSummary();
+                    
+                } catch (error) {
+                    console.error('خطأ في تحميل التقارير:', error);
+                    UIUtils.showToast('حدث خطأ في تحميل التقارير', 'error');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            gatherReportData() {
+                const tasks = this.getFilteredTasks();
+                const users = userManager.getAllUsers();
+                const projects = taskManager.getAllProjects();
+                
+                // إحصائيات المهام
+                const taskStats = {
+                    total: tasks.length,
+                    completed: tasks.filter(t => t.status === TASK_STATUS.APPROVED).length,
+                    inProgress: tasks.filter(t => t.status === TASK_STATUS.IN_PROGRESS).length,
+                    pending: tasks.filter(t => t.status === TASK_STATUS.PENDING).length,
+                    overdue: tasks.filter(t => DateUtils.isOverdue(t.dueDate) && t.status !== TASK_STATUS.APPROVED).length
+                };
+
+                // إحصائيات الأعضاء
+                const userStats = users.map(user => {
+                    const userTasks = tasks.filter(t => t.assignedTo === user.id);
+                    const completed = userTasks.filter(t => t.status === TASK_STATUS.APPROVED).length;
+                    
+                    return {
+                        user,
+                        totalTasks: userTasks.length,
+                        completedTasks: completed,
+                        completionRate: userTasks.length > 0 ? Math.round((completed / userTasks.length) * 100) : 0,
+                        avgCompletionTime: this.calculateAvgCompletionTime(userTasks)
+                    };
+                }).filter(stat => stat.totalTasks > 0);
+
+                // إحصائيات المشاريع
+                const projectStats = projects.map(project => {
+                    const projectTasks = tasks.filter(t => t.projectId === project.id);
+                    const completed = projectTasks.filter(t => t.status === TASK_STATUS.APPROVED).length;
+                    
+                    return {
+                        project,
+                        totalTasks: projectTasks.length,
+                        completedTasks: completed,
+                        efficiency: projectTasks.length > 0 ? Math.round((completed / projectTasks.length) * 100) : 0
+                    };
+                }).filter(stat => stat.totalTasks > 0);
+
+                return {
+                    taskStats,
+                    userStats,
+                    projectStats,
+                    tasks,
+                    timelineData: this.generateTimelineData(tasks)
+                };
+            }
+
+            getFilteredTasks() {
+                let tasks = taskManager.tasks;
+                
+                // فلترة حسب الفترة الزمنية
+                const { startDate, endDate } = this.getDateRange();
+                tasks = tasks.filter(task => {
+                    const taskDate = new Date(task.createdAt);
+                    return taskDate >= startDate && taskDate <= endDate;
+                });
+                
+                // فلترة حسب المشروع
+                if (this.currentProject !== 'all') {
+                    tasks = tasks.filter(task => task.projectId === this.currentProject);
+                }
+                
+                // فلترة حسب المستخدم
+                if (this.currentUser !== 'all') {
+                    tasks = tasks.filter(task => task.assignedTo === this.currentUser);
+                }
+                
+                return tasks;
+            }
+
+            getDateRange() {
+                const now = new Date();
+                let startDate, endDate = new Date(now);
+                
+                switch (this.currentPeriod) {
+                    case 'today':
+                        startDate = new Date(now.setHours(0, 0, 0, 0));
+                        break;
+                    case 'week':
+                        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        break;
+                    case 'month':
+                        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                        break;
+                    case 'quarter':
+                        const quarter = Math.floor(now.getMonth() / 3);
+                        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                        break;
+                    case 'year':
+                        startDate = new Date(now.getFullYear(), 0, 1);
+                        break;
+                    case 'custom':
+                        startDate = new Date(document.getElementById('start-date').value);
+                        endDate = new Date(document.getElementById('end-date').value);
+                        break;
+                    default:
+                        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                }
+                
+                return { startDate, endDate };
+            }
+
+            calculateAvgCompletionTime(tasks) {
+               const completedTasks = tasks.filter(t => 
+                   t.status === TASK_STATUS.APPROVED && t.completedDate && t.startDate
+               );
+               
+               if (completedTasks.length === 0) return 0;
+               
+               const totalDays = completedTasks.reduce((sum, task) => {
+                   const start = new Date(task.startDate);
+                   const end = new Date(task.completedDate);
+                   const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                   return sum + days;
+               }, 0);
+               
+               return Math.round(totalDays / completedTasks.length);
+           }
+
+           generateTimelineData(tasks) {
+               const dailyData = {};
+               const { startDate, endDate } = this.getDateRange();
+               
+               // تهيئة البيانات اليومية
+               for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                   const dateStr = d.toISOString().split('T')[0];
+                   dailyData[dateStr] = { completed: 0, created: 0 };
+               }
+               
+               // ملء البيانات
+               tasks.forEach(task => {
+                   // المهام المُنشأة
+                   const createdDate = new Date(task.createdAt).toISOString().split('T')[0];
+                   if (dailyData[createdDate]) {
+                       dailyData[createdDate].created++;
+                   }
+                   
+                   // المهام المكتملة
+                   if (task.completedDate) {
+                       const completedDate = new Date(task.completedDate).toISOString().split('T')[0];
+                       if (dailyData[completedDate]) {
+                           dailyData[completedDate].completed++;
+                       }
+                   }
+               });
+               
+               return dailyData;
+           }
+
+           updateQuickStats() {
+               const { taskStats } = this.reportData;
+               const completionRate = taskStats.total > 0 ? Math.round((taskStats.completed / taskStats.total) * 100) : 0;
+               
+               const statsContainer = document.getElementById('quick-stats');
+               
+               statsContainer.innerHTML = `
+                   <div class="stat-card bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                       <div class="flex items-center gap-4">
+                           <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center">
+                               <i data-lucide="check-circle" class="w-8 h-8 text-blue-600"></i>
+                           </div>
+                           <div>
+                               <p class="text-3xl font-bold text-gray-900 dark:text-white">${taskStats.completed}</p>
+                               <p class="text-sm text-gray-500 dark:text-gray-400">مهام مكتملة</p>
+                               <div class="flex items-center gap-2 mt-1">
+                                   <div class="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+                                       <div class="bg-blue-500 h-1 rounded-full" style="width: ${completionRate}%"></div>
+                                   </div>
+                                   <span class="text-xs text-blue-600">${completionRate}%</span>
+                               </div>
+                           </div>
+                       </div>
+                   </div>
+                   
+                   <div class="stat-card bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                       <div class="flex items-center gap-4">
+                           <div class="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/20 rounded-2xl flex items-center justify-center">
+                               <i data-lucide="clock" class="w-8 h-8 text-yellow-600"></i>
+                           </div>
+                           <div>
+                               <p class="text-3xl font-bold text-gray-900 dark:text-white">${taskStats.inProgress}</p>
+                               <p class="text-sm text-gray-500 dark:text-gray-400">قيد التنفيذ</p>
+                               <p class="text-xs text-yellow-600 mt-1">+${taskStats.pending} في الانتظار</p>
+                           </div>
+                       </div>
+                   </div>
+                   
+                   <div class="stat-card bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                       <div class="flex items-center gap-4">
+                           <div class="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-2xl flex items-center justify-center">
+                               <i data-lucide="alert-triangle" class="w-8 h-8 text-red-600"></i>
+                           </div>
+                           <div>
+                               <p class="text-3xl font-bold text-gray-900 dark:text-white">${taskStats.overdue}</p>
+                               <p class="text-sm text-gray-500 dark:text-gray-400">مهام متأخرة</p>
+                               <p class="text-xs text-red-600 mt-1">تحتاج متابعة فورية</p>
+                           </div>
+                       </div>
+                   </div>
+                   
+                   <div class="stat-card bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 p-6">
+                       <div class="flex items-center gap-4">
+                           <div class="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-2xl flex items-center justify-center">
+                               <i data-lucide="trending-up" class="w-8 h-8 text-green-600"></i>
+                           </div>
+                           <div>
+                               <p class="text-3xl font-bold text-gray-900 dark:text-white">${this.reportData.userStats.length}</p>
+                               <p class="text-sm text-gray-500 dark:text-gray-400">أعضاء نشطين</p>
+                               <p class="text-xs text-green-600 mt-1">معدل أداء: ${this.calculateOverallPerformance()}%</p>
+                           </div>
+                       </div>
+                   </div>
+               `;
+               
+               this.updateIcons();
+           }
+
+           calculateOverallPerformance() {
+               const { userStats } = this.reportData;
+               if (userStats.length === 0) return 0;
+               
+               const totalRate = userStats.reduce((sum, stat) => sum + stat.completionRate, 0);
+               return Math.round(totalRate / userStats.length);
+           }
+
+           createCharts() {
+               this.createTasksChart();
+               this.createTeamChart();
+               this.createProjectsEfficiencyChart();
+               this.createProductivityTimelineChart();
+               this.createPrioritiesChart();
+               this.createMonthlyComparisonChart();
+           }
+
+           createTasksChart() {
+               const ctx = document.getElementById('tasks-chart').getContext('2d');
+               const { taskStats } = this.reportData;
+               
+               if (this.charts.tasks) {
+                   this.charts.tasks.destroy();
+               }
+               
+               this.charts.tasks = new Chart(ctx, {
+                   type: 'doughnut',
+                   data: {
+                       labels: ['مكتملة', 'قيد التنفيذ', 'في الانتظار', 'متأخرة'],
+                       datasets: [{
+                           data: [taskStats.completed, taskStats.inProgress, taskStats.pending, taskStats.overdue],
+                           backgroundColor: [
+                               '#10B981', // أخضر للمكتملة
+                               '#3B82F6', // أزرق للتنفيذ
+                               '#F59E0B', // أصفر للانتظار
+                               '#EF4444'  // أحمر للمتأخرة
+                           ],
+                           borderWidth: 3,
+                           borderColor: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFFFFF'
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       maintainAspectRatio: false,
+                       plugins: {
+                           legend: {
+                               position: 'bottom',
+                               labels: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151',
+                                   padding: 20,
+                                   font: { family: 'Cairo' }
+                               }
+                           }
+                       }
+                   }
+               });
+           }
+
+           createTeamChart() {
+               const ctx = document.getElementById('team-chart').getContext('2d');
+               const { userStats } = this.reportData;
+               
+               if (this.charts.team) {
+                   this.charts.team.destroy();
+               }
+               
+               this.charts.team = new Chart(ctx, {
+                   type: 'bar',
+                   data: {
+                       labels: userStats.map(stat => stat.user.name),
+                       datasets: [{
+                           label: 'المهام المكتملة',
+                           data: userStats.map(stat => stat.completedTasks),
+                           backgroundColor: '#A68F51',
+                           borderRadius: 8
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       maintainAspectRatio: false,
+                       plugins: {
+                           legend: {
+                               labels: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151',
+                                   font: { family: 'Cairo' }
+                               }
+                           }
+                       },
+                       scales: {
+                           y: {
+                               ticks: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151'
+                               },
+                               grid: {
+                                   color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                               }
+                           },
+                           x: {
+                               ticks: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151'
+                               },
+                               grid: {
+                                   color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                               }
+                           }
+                       }
+                   }
+               });
+           }
+
+           createProjectsEfficiencyChart() {
+               const ctx = document.getElementById('projects-efficiency-chart').getContext('2d');
+               const { projectStats } = this.reportData;
+               
+               if (this.charts.projectsEfficiency) {
+                   this.charts.projectsEfficiency.destroy();
+               }
+               
+               this.charts.projectsEfficiency = new Chart(ctx, {
+                   type: 'radar',
+                   data: {
+                       labels: projectStats.map(stat => stat.project.name),
+                       datasets: [{
+                           label: 'كفاءة المشروع (%)',
+                           data: projectStats.map(stat => stat.efficiency),
+                           borderColor: '#FADC9B',
+                           backgroundColor: 'rgba(250, 220, 155, 0.2)',
+                           borderWidth: 2,
+                           pointBackgroundColor: '#A68F51'
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       maintainAspectRatio: false,
+                       plugins: {
+                           legend: {
+                               labels: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151',
+                                   font: { family: 'Cairo' }
+                               }
+                           }
+                       },
+                       scales: {
+                           r: {
+                               angleLines: {
+                                   color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                               },
+                               grid: {
+                                   color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                               },
+                               pointLabels: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151',
+                                   font: { family: 'Cairo' }
+                               },
+                               ticks: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151'
+                               }
+                           }
+                       }
+                   }
+               });
+           }
+
+           createProductivityTimelineChart() {
+               const ctx = document.getElementById('productivity-timeline-chart').getContext('2d');
+               const { timelineData } = this.reportData;
+               
+               if (this.charts.productivity) {
+                   this.charts.productivity.destroy();
+               }
+               
+               const dates = Object.keys(timelineData).sort();
+               const completedData = dates.map(date => timelineData[date].completed);
+               const createdData = dates.map(date => timelineData[date].created);
+               
+               this.charts.productivity = new Chart(ctx, {
+                   type: 'line',
+                   data: {
+                       labels: dates.map(date => DateUtils.formatDate(date)),
+                       datasets: [{
+                           label: 'مهام مكتملة',
+                           data: completedData,
+                           borderColor: '#10B981',
+                           backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                           tension: 0.4
+                       }, {
+                           label: 'مهام جديدة',
+                           data: createdData,
+                           borderColor: '#3B82F6',
+                           backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                           tension: 0.4
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       maintainAspectRatio: false,
+                       plugins: {
+                           legend: {
+                               labels: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151',
+                                   font: { family: 'Cairo' }
+                               }
+                           }
+                       },
+                       scales: {
+                           y: {
+                               ticks: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151'
+                               },
+                               grid: {
+                                   color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                               }
+                           },
+                           x: {
+                               ticks: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151'
+                               },
+                               grid: {
+                                   color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                               }
+                           }
+                       }
+                   }
+               });
+           }
+
+           createPrioritiesChart() {
+               const ctx = document.getElementById('priorities-chart').getContext('2d');
+               const { tasks } = this.reportData;
+               
+               if (this.charts.priorities) {
+                   this.charts.priorities.destroy();
+               }
+               
+               const priorities = {
+                   urgent: tasks.filter(t => t.priority === TASK_PRIORITY.URGENT).length,
+                   high: tasks.filter(t => t.priority === TASK_PRIORITY.HIGH).length,
+                   medium: tasks.filter(t => t.priority === TASK_PRIORITY.MEDIUM).length,
+                   low: tasks.filter(t => t.priority === TASK_PRIORITY.LOW).length
+               };
+               
+               this.charts.priorities = new Chart(ctx, {
+                   type: 'pie',
+                   data: {
+                       labels: ['عاجلة', 'عالية', 'متوسطة', 'منخفضة'],
+                       datasets: [{
+                           data: [priorities.urgent, priorities.high, priorities.medium, priorities.low],
+                           backgroundColor: ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'],
+                           borderWidth: 3,
+                           borderColor: document.documentElement.classList.contains('dark') ? '#1F2937' : '#FFFFFF'
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       maintainAspectRatio: false,
+                       plugins: {
+                           legend: {
+                               position: 'bottom',
+                               labels: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151',
+                                   padding: 20,
+                                   font: { family: 'Cairo' }
+                               }
+                           }
+                       }
+                   }
+               });
+           }
+
+           createMonthlyComparisonChart() {
+               const ctx = document.getElementById('monthly-comparison-chart').getContext('2d');
+               
+               if (this.charts.monthlyComparison) {
+                   this.charts.monthlyComparison.destroy();
+               }
+               
+               // بيانات تجريبية للمقارنة الشهرية
+               const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'];
+               const completedTasks = [45, 52, 48, 61, 55, 67];
+               const createdTasks = [50, 58, 53, 65, 60, 70];
+               
+               this.charts.monthlyComparison = new Chart(ctx, {
+                   type: 'line',
+                   data: {
+                       labels: months,
+                       datasets: [{
+                           label: 'مهام مكتملة',
+                           data: completedTasks,
+                           borderColor: '#A68F51',
+                           backgroundColor: 'rgba(166, 143, 81, 0.1)',
+                           tension: 0.4,
+                           fill: true
+                       }, {
+                           label: 'مهام جديدة',
+                           data: createdTasks,
+                           borderColor: '#FADC9B',
+                           backgroundColor: 'rgba(250, 220, 155, 0.1)',
+                           tension: 0.4,
+                           fill: true
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       maintainAspectRatio: false,
+                       plugins: {
+                           legend: {
+                               labels: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151',
+                                   font: { family: 'Cairo' }
+                               }
+                           }
+                       },
+                       scales: {
+                           y: {
+                               ticks: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151'
+                               },
+                               grid: {
+                                   color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                               }
+                           },
+                           x: {
+                               ticks: {
+                                   color: document.documentElement.classList.contains('dark') ? '#F9FAFB' : '#374151'
+                               },
+                               grid: {
+                                   color: document.documentElement.classList.contains('dark') ? '#374151' : '#E5E7EB'
+                               }
+                           }
+                       }
+                   }
+               });
+           }
+
+           updateDetailedReports() {
+               this.updateTeamPerformanceList();
+               this.updateOverdueTasksList();
+           }
+
+           updateTeamPerformanceList() {
+               const container = document.getElementById('team-performance-list');
+               const { userStats } = this.reportData;
+               
+               container.innerHTML = userStats
+                   .sort((a, b) => b.completionRate - a.completionRate)
+                   .slice(0, 10)
+                   .map(stat => `
+                       <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl">
+                           <div class="flex items-center gap-3">
+                               <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-sand to-primary-light flex items-center justify-center text-white font-bold">
+                                   ${stat.user.name.charAt(0)}
+                               </div>
+                               <div>
+                                   <h4 class="font-semibold text-gray-900 dark:text-white">${stat.user.name}</h4>
+                                   <p class="text-sm text-gray-500 dark:text-gray-400">${ROLE_NAMES[stat.user.role]}</p>
+                               </div>
+                           </div>
+                           
+                           <div class="flex items-center gap-4">
+                               <div class="text-right">
+                                   <p class="text-sm font-semibold text-gray-900 dark:text-white">${stat.completedTasks}/${stat.totalTasks}</p>
+                                   <p class="text-xs text-gray-500 dark:text-gray-400">مهام مكتملة</p>
+                               </div>
+                               
+                               <div class="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                   <div class="bg-primary-sand h-2 rounded-full" style="width: ${stat.completionRate}%"></div>
+                               </div>
+                               
+                               <span class="text-sm font-bold text-primary-sand min-w-[3rem]">${stat.completionRate}%</span>
+                           </div>
+                       </div>
+                   `).join('');
+           }
+
+           updateOverdueTasksList() {
+               const container = document.getElementById('overdue-tasks-list');
+               const overdueTasks = this.reportData.tasks.filter(task => 
+                   DateUtils.isOverdue(task.dueDate) && task.status !== TASK_STATUS.APPROVED
+               );
+               
+               document.getElementById('overdue-count').textContent = overdueTasks.length;
+               
+               if (overdueTasks.length === 0) {
+                   container.innerHTML = `
+                       <div class="text-center py-8">
+                           <div class="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                               <i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>
+                           </div>
+                           <p class="text-gray-500 dark:text-gray-400">لا توجد مهام متأخرة!</p>
+                       </div>
+                   `;
+               } else {
+                   container.innerHTML = overdueTasks
+                       .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                       .slice(0, 10)
+                       .map(task => {
+                           const assignee = userManager.getUserById(task.assignedTo);
+                           const project = taskManager.getProjectById(task.projectId);
+                           const daysOverdue = Math.ceil((new Date() - new Date(task.dueDate)) / (1000 * 60 * 60 * 24));
+                           
+                           return `
+                               <div class="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl">
+                                   <div class="flex-1">
+                                       <h4 class="font-semibold text-gray-900 dark:text-white text-sm">${task.title}</h4>
+                                       <div class="flex items-center gap-4 mt-1">
+                                           <span class="text-xs text-gray-500 dark:text-gray-400">${assignee ? assignee.name : 'غير مُعين'}</span>
+                                           <span class="text-xs text-gray-500 dark:text-gray-400">${project ? project.name : ''}</span>
+                                       </div>
+                                   </div>
+                                   
+                                   <div class="text-right">
+                                       <span class="text-xs font-semibold text-red-600">متأخر ${daysOverdue} يوم</span>
+                                       <p class="text-xs text-gray-500 dark:text-gray-400">${DateUtils.formatDate(task.dueDate)}</p>
+                                   </div>
+                               </div>
+                           `;
+                       }).join('');
+               }
+               
+               this.updateIcons();
+           }
+
+           updatePerformanceSummary() {
+               const { taskStats } = this.reportData;
+               const completionRate = taskStats.total > 0 ? Math.round((taskStats.completed / taskStats.total) * 100) : 0;
+               
+               // تحديث دائرة معدل الإنجاز
+               const completionCircle = document.getElementById('completion-rate-circle');
+               const completionText = document.getElementById('completion-rate-text');
+               const circumference = 100;
+               const offset = circumference - (completionRate / 100) * circumference;
+               
+               completionCircle.style.strokeDashoffset = offset;
+               completionText.textContent = `${completionRate}%`;
+               
+               // تحديث متوسط وقت الإنجاز
+               const avgTime = this.calculateOverallAvgTime();
+               document.getElementById('avg-completion-time').textContent = avgTime;
+               
+               // تحديث مستوى الرضا (رقم عشوائي للعرض التوضيحي)
+               const satisfactionScore = (4.2 + Math.random() * 0.6).toFixed(1);
+               document.getElementById('satisfaction-score').textContent = satisfactionScore;
+           }
+
+           calculateOverallAvgTime() {
+               const { userStats } = this.reportData;
+               if (userStats.length === 0) return 0;
+               
+               const totalTime = userStats.reduce((sum, stat) => sum + stat.avgCompletionTime, 0);
+               return Math.round(totalTime / userStats.length);
+           }
+
+           switchChart(chartType, newType) {
+               // تبديل نوع الرسم البياني
+               const chartButtons = document.querySelectorAll(`#${chartType}-chart-type`).parentNode.children;
+               Array.from(chartButtons).forEach(btn => {
+                   btn.className = 'px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg';
+               });
+               
+               event.target.className = 'px-3 py-1 text-xs bg-primary-sand text-white rounded-lg';
+               
+               // إعادة إنشاء الرسم البياني بالنوع الجديد
+               if (chartType === 'tasks') {
+                   this.createTasksChart(newType);
+               } else if (chartType === 'team') {
+                   this.createTeamChart(newType);
+               }
+           }
+
+           exportAllReports() {
+               try {
+                   const exportData = {
+                       period: this.currentPeriod,
+                       dateRange: this.getDateRange(),
+                       quickStats: this.reportData.taskStats,
+                       teamPerformance: this.reportData.userStats,
+                       projectsEfficiency: this.reportData.projectStats,
+                       overdueTasks: this.reportData.tasks.filter(task => 
+                           DateUtils.isOverdue(task.dueDate) && task.status !== TASK_STATUS.APPROVED
+                       ),
+                       generatedAt: new Date().toISOString()
+                   };
+                   
+                   const dataStr = JSON.stringify(exportData, null, 2);
+                   const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                   const url = URL.createObjectURL(dataBlob);
+                   const link = document.createElement('a');
+                   
+                   link.href = url;
+                   link.download = `تقرير-شامل-${new Date().toISOString().split('T')[0]}.json`;
+                   link.click();
+                   
+                   URL.revokeObjectURL(url);
+                   UIUtils.showToast('تم تصدير التقارير بنجاح', 'success');
+                   
+               } catch (error) {
+                   console.error('خطأ في تصدير التقارير:', error);
+                   UIUtils.showToast('حدث خطأ في تصدير التقارير', 'error');
+               }
+           }
+
+           printReports() {
+               window.print();
+           }
+
+           showLoading(show) {
+               const loadingState = document.getElementById('loading-state');
+               if (show) {
+                   loadingState.classList.remove('hidden');
+               } else {
+                   loadingState.classList.add('hidden');
+               }
+           }
+
+           bindEvents() {
+               // فلاتر الفترة الزمنية
+               document.getElementById('period-filter').addEventListener('change', (e) => {
+                   this.currentPeriod = e.target.value;
+                   
+                   const customDateRange = document.getElementById('custom-date-range');
+                   if (e.target.value === 'custom') {
+                       customDateRange.classList.remove('hidden');
+                   } else {
+                       customDateRange.classList.add('hidden');
+                       this.loadReportData();
+                   }
+               });
+               
+               // التواريخ المخصصة
+               document.getElementById('start-date').addEventListener('change', () => {
+                   if (this.currentPeriod === 'custom') {
+                       this.loadReportData();
+                   }
+               });
+               
+               document.getElementById('end-date').addEventListener('change', () => {
+                   if (this.currentPeriod === 'custom') {
+                       this.loadReportData();
+                   }
+               });
+               
+               // فلاتر المشروع والمستخدم
+               document.getElementById('project-filter').addEventListener('change', (e) => {
+                   this.currentProject = e.target.value;
+                   this.loadReportData();
+               });
+               
+               document.getElementById('user-filter').addEventListener('change', (e) => {
+                   this.currentUser = e.target.value;
+                   this.loadReportData();
+               });
+               
+               // أزرار التصدير والطباعة
+               document.getElementById('export-all-btn').addEventListener('click', () => {
+                   this.exportAllReports();
+               });
+               
+               document.getElementById('print-btn').addEventListener('click', () => {
+                   this.printReports();
+               });
+               
+               document.getElementById('refresh-btn').addEventListener('click', () => {
+                   this.loadReportData();
+                   UIUtils.showToast('تم تحديث البيانات', 'success');
+               });
+               
+               // تصدير أداء الفريق
+               document.getElementById('export-team-performance').addEventListener('click', () => {
+                   this.exportTeamPerformance();
+               });
+               
+               // تبديل عدد الشهور للمقارنة
+               document.getElementById('comparison-months').addEventListener('change', () => {
+                   this.createMonthlyComparisonChart();
+               });
+           }
+
+           exportTeamPerformance() {
+               try {
+                   const { userStats } = this.reportData;
+                   const csvData = userStats.map(stat => ({
+                       'اسم العضو': stat.user.name,
+                       'الدور': ROLE_NAMES[stat.user.role],
+                       'إجمالي المهام': stat.totalTasks,
+                       'المهام المكتملة': stat.completedTasks,
+                       'معدل الإنجاز': `${stat.completionRate}%`,
+                       'متوسط وقت الإنجاز': `${stat.avgCompletionTime} يوم`,
+                       'القسم': stat.user.department
+                   }));
+                   
+                   const csvContent = this.convertToCSV(csvData);
+                   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                   const link = document.createElement('a');
+                   const url = URL.createObjectURL(blob);
+                   
+                   link.setAttribute('href', url);
+                   link.setAttribute('download', `أداء-الفريق-${new Date().toISOString().split('T')[0]}.csv`);
+                   link.style.visibility = 'hidden';
+                   
+                   document.body.appendChild(link);
+                   link.click();
+                   document.body.removeChild(link);
+                   
+                   UIUtils.showToast('تم تصدير تقرير أداء الفريق', 'success');
+                   
+               } catch (error) {
+                   console.error('خطأ في تصدير أداء الفريق:', error);
+                   UIUtils.showToast('حدث خطأ في التصدير', 'error');
+               }
+           }
+
+           convertToCSV(data) {
+               if (data.length === 0) return '';
+               
+               const headers = Object.keys(data[0]);
+               const csvRows = [];
+               
+               // إضافة العناوين
+               csvRows.push(headers.join(','));
+               
+               // إضافة البيانات
+               for (const row of data) {
+                   const values = headers.map(header => {
+                       const escaped = ('' + row[header]).replace(/"/g, '\\"');
+                       return `"${escaped}"`;
+                   });
+                   csvRows.push(values.join(','));
+               }
+               
+               return csvRows.join('\n');
+           }
+
+           updateIcons() {
+               if (window.lucide) {
+                   lucide.createIcons();
+               }
+           }
+       }
+
+       // متغير عام للوصول للكلاس
+       let reportsPage;
+
+       // تهيئة الصفحة عند تحميل الـ DOM
+       document.addEventListener('DOMContentLoaded', () => {
+           try {
+               reportsPage = new ReportsPage();
+               console.log('✅ تم تحميل صفحة التقارير والإحصائيات بنجاح');
+           } catch (error) {
+               console.error('❌ خطأ في تحميل صفحة التقارير:', error);
+           }
+       });
+
+       // تحديث الرسوم البيانية عند تغيير الثيم
+       document.addEventListener('themeChange', () => {
+           if (reportsPage && reportsPage.charts) {
+               setTimeout(() => {
+                   reportsPage.createCharts();
+               }, 100);
+           }
+       });
+
+       // إعدادات الطباعة
+       window.addEventListener('beforeprint', () => {
+           document.body.classList.add('print-mode');
+       });
+
+       window.addEventListener('afterprint', () => {
+           document.body.classList.remove('print-mode');
+       });
+   </script>
+
+   <style media="print">
+       @media print {
+           .print-hide {
+               display: none !important;
+           }
+           
+           .chart-container {
+               height: 300px !important;
+           }
+           
+           body {
+               background: white !important;
+               color: black !important;
+           }
+           
+           .bg-gray-50, .bg-gray-900 {
+               background: white !important;
+           }
+           
+           .text-gray-900, .text-white {
+               color: black !important;
+           }
+           
+           .border-gray-200, .border-gray-700 {
+               border-color: #ccc !important;
+           }
+       }
+   </style>
+
+</body>
+</html>
