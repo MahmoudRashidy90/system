@@ -1,0 +1,12 @@
+[23-Jun-2025 18:31:15 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method PDOStatement::bind_param() in /home/coriymfy/public_html/system/api/auth.php:14
+Stack trace:
+#0 {main}
+  thrown in /home/coriymfy/public_html/system/api/auth.php on line 14
+[23-Jun-2025 18:42:30 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method PDOStatement::bind_param() in /home/coriymfy/public_html/system/api/auth.php:14
+Stack trace:
+#0 {main}
+  thrown in /home/coriymfy/public_html/system/api/auth.php on line 14
+[23-Jun-2025 18:42:38 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method PDOStatement::bind_param() in /home/coriymfy/public_html/system/api/auth.php:14
+Stack trace:
+#0 {main}
+  thrown in /home/coriymfy/public_html/system/api/auth.php on line 14
